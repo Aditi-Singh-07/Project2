@@ -1,19 +1,31 @@
+import PyPDF2
+import spacy
 import re
-import nltk
-from nltk.tokenize import word_tokenize
 
-nltk.download('punkt')
+# Load pre-trained model (ensure you've installed spaCy and its model)
+nlp = spacy.load("en_core_web_sm")
 
-def extract_skills_from_text(resume_text):
-    predefined_skills = ["django", "python", "sql", "java", "communication", "teamwork", "leadership"]
+# Dummy skills list (you can expand this with your own list or use a more advanced method)
+SKILLS_LIST = ['Python', 'JavaScript', 'Java', 'SQL', 'Machine Learning', 'Deep Learning', 'Data Science']
 
-    tokens = word_tokenize(resume_text.lower())
-    tokens = [re.sub(r'\W+', '', token) for token in tokens if token.isalpha()]
+def extract_skills(file_path):
+    # Read the PDF file
+    with open(file_path, 'rb') as f:
+        reader = PyPDF2.PdfReader(f)
+        text = ''
+        for page in reader.pages:
+            text += page.extract_text()
 
-    technical_skills = [skill for skill in predefined_skills if skill in tokens]
-    soft_skills = [skill for skill in ["communication", "teamwork", "leadership"] if skill in tokens]
+    # Preprocess the text (remove extra spaces, newlines)
+    text = re.sub(r'\s+', ' ', text)
 
-    return {
-        "technical": technical_skills,
-        "soft": soft_skills
-    }
+    # Use spaCy to process the text
+    doc = nlp(text)
+    
+    # Extract skills
+    skills = [skill for skill in SKILLS_LIST if skill.lower() in text.lower()]
+    experience = 'Extracted experience details'  # Add your logic to extract experience
+    projects = 'Extracted project details'  # Add your logic to extract projects
+
+    return skills, experience, projects
+
