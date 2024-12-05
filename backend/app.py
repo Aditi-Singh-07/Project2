@@ -1,37 +1,55 @@
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
-'''from skill_extraction import extract_skills_from_text
-from utils import preprocess_resume
-'''
-app = Flask(__name__)
-CORS(app)
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+import os
+from skill_extraction import extract_skills
 
-# Serve the homepage (index.html)
+app = Flask(__name__)
+
+# Upload folder and allowed extensions
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'backend', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ALLOWED_EXTENSIONS = {'pdf'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
+# Function to check allowed file extensions
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Endpoint to upload and process the resume
+
 @app.route('/upload', methods=['POST'])
-def upload_resume():
-    try:
-        file = request.files['pdf']
-        if not file:
-            return jsonify({"error": "No file uploaded"}), 400
+def upload_file():
+    if 'pdf' not in request.files:
+        return render_template('error.html', error_message='No file part provided.')
 
-        # Preprocess the resume
-        resume_text = preprocess_resume(file)
-        
-        # Extract skills using the defined skill extraction method
-        skills = extract_skills_from_text(resume_text)
-        return jsonify({"skills": skills}), 200
-    except Exception as e:
-        return render_template('error.html', error_message=str(e))
+    file = request.files['pdf']
+    if file.filename == '':
+        return render_template('error.html', error_message='No file selected.')
 
-# Error page route
-@app.route('/error')
-def error():
-    return render_template('error.html', error_message="An error occurred. Please try again.")
+    if file and allowed_file(file.filename):
+        # Save the uploaded file
+        filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filename)
 
-if __name__ == "__main__":
+        # Extract skills from the resume
+        try:
+            skills, experience, projects = extract_skills(filename)
+            return render_template('skills.html', skills=skills, experience=experience, projects=projects)
+        except Exception as e:
+            return render_template('error.html', error_message=f"Error extracting skills: {str(e)}")
+    else:
+        return render_template('error.html', error_message='Invalid file type.')
+
+
+@app.route('/mcq')
+def mcq():
+    return render_template('mcq.html')
+
+
+if __name__ == '__main__':
     app.run(debug=True)

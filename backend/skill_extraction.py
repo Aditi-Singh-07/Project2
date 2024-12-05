@@ -1,31 +1,19 @@
-import PyPDF2
 import spacy
-import re
 
-# Load pre-trained model (ensure you've installed spaCy and its model)
+# Load spaCy model
 nlp = spacy.load("en_core_web_sm")
 
-# Dummy skills list (you can expand this with your own list or use a more advanced method)
-SKILLS_LIST = ['Python', 'JavaScript', 'Java', 'SQL', 'Machine Learning', 'Deep Learning', 'Data Science']
 
-def extract_skills(file_path):
-    # Read the PDF file
-    with open(file_path, 'rb') as f:
-        reader = PyPDF2.PdfReader(f)
-        text = ''
-        for page in reader.pages:
-            text += page.extract_text()
+def extract_skills(resume_path):
+    # Simulating skill extraction for now
+    # Replace this logic with actual preprocessing & extraction techniques
+    with open(resume_path, 'rb') as f:
+        content = f.read()
 
-    # Preprocess the text (remove extra spaces, newlines)
-    text = re.sub(r'\s+', ' ', text)
-
-    # Use spaCy to process the text
-    doc = nlp(text)
-    
-    # Extract skills
-    skills = [skill for skill in SKILLS_LIST if skill.lower() in text.lower()]
-    experience = 'Extracted experience details'  # Add your logic to extract experience
-    projects = 'Extracted project details'  # Add your logic to extract projects
+    # Placeholder processing
+    doc = nlp(content.decode('latin1', errors='ignore'))  # Use appropriate encoding
+    skills = ["Python", "JavaScript", "Machine Learning"]
+    experience = "3 years of software development"
+    projects = ["AI Chatbot", "E-commerce platform"]
 
     return skills, experience, projects
-
