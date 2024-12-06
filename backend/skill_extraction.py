@@ -53,6 +53,7 @@ def extract_skills_with_fuzzy(text):
                 extracted_skills[category].append(match[0])
     return {category: list(set(skills)) for category, skills in extracted_skills.items()}
 
+
 '''import spacy
 
 # Load spaCy model
