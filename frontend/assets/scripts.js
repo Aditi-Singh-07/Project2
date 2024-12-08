@@ -1,4 +1,4 @@
-document.getElementById('uploadBtn').addEventListener('click', async () => {
+/*document.getElementById('uploadBtn').addEventListener('click', async () => {
     const fileInput = document.getElementById('resumeInput');
     const skillsDiv = document.getElementById('skills');
     const errorDiv = document.getElementById('error');
@@ -27,4 +27,4 @@ document.getElementById('uploadBtn').addEventListener('click', async () => {
     } catch (error) {
         window.location.href = "error.html";
     }
-});
+});*/
