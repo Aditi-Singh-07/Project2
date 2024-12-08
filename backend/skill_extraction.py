@@ -20,7 +20,7 @@ model = T5ForConditionalGeneration.from_pretrained(model_name)
 SKILL_ONTOLOGY = {
     "technical": ["django", "python", "sql", "java", "tensorflow"],
     "soft": ["communication", "teamwork", "problem-solving"],
-    "managerial": ["leadership", "strategic planning", "budget management", "project management"]
+    "managerial": ["leadership", "strategic planning", "management"]
 }
 
 def extract_text_from_pdf(pdf_path):
@@ -48,7 +48,7 @@ def extract_skills_with_fuzzy(text):
     extracted_skills = {"technical": [], "soft": [], "managerial": []}
     for token in tokens:
         for category, skills in SKILL_ONTOLOGY.items():
-            match = process.extractOne(token, skills, score_cutoff=85)
+            match = process.extractOne(token, skills, score_cutoff=90)
             if match:
                 extracted_skills[category].append(match[0])
     return {category: list(set(skills)) for category, skills in extracted_skills.items()}
