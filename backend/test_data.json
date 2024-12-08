@@ -1,0 +1,6 @@
+{
+    "sample1.pdf": ["java", "mysql", "css", "javascript", "python"],
+    "sample2.pdf": ["java", "mysql", "python", "html", "javascript", "css", "teamwork", "communication", "management", "leadership"],
+    "sample4.pdf": ["python", "java", "javascript", "HTML", "CSS", "MySql"],
+    "sample5.pdf": ["python", "java", "HTML", "CSS", "SQL", "communication", "management", "leadership"]
+}

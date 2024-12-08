@@ -1,7 +1,8 @@
+import json
+from sklearn.metrics import precision_score, recall_score, f1_score
 import pdfplumber
 import spacy
 from rapidfuzz import process
-from transformers import T5ForConditionalGeneration, T5Tokenizer
 import logging
 
 # Initialize logging
@@ -10,11 +11,6 @@ logger = logging.getLogger(__name__)
 
 # Load NLP model
 nlp = spacy.load("en_core_web_sm")
-
-# Load T5 model and tokenizer for MCQ generation
-model_name = "t5-small"  # Lightweight, free model
-tokenizer = T5Tokenizer.from_pretrained(model_name)
-model = T5ForConditionalGeneration.from_pretrained(model_name)
 
 # Skill Ontology
 SKILL_ONTOLOGY = {
@@ -52,6 +48,103 @@ def extract_skills_with_fuzzy(text):
             if match:
                 extracted_skills[category].append(match[0])
     return {category: list(set(skills)) for category, skills in extracted_skills.items()}
+
+def calculate_accuracy(test_folder, expected_skills_file):
+    """Calculate accuracy of the skill extraction."""
+    try:
+        # Load expected skills
+        with open(expected_skills_file, 'r') as f:
+            expected_skills = json.load(f)
+        
+        # Initialize metrics
+        y_true = []
+        y_pred = []
+
+        # Test each PDF
+        for pdf_file, true_skills in expected_skills.items():
+            pdf_path = os.path.join(test_folder, pdf_file)
+            if not os.path.exists(pdf_path):
+                logger.warning(f"{pdf_file} not found in test folder.")
+                continue
+            
+            # Extract skills from PDF
+            extracted_skills = extract_skills_with_fuzzy(extract_text_from_pdf(pdf_path))
+            predicted_skills = [skill for category in extracted_skills.values() for skill in category]
+
+            # Convert to binary labels for comparison
+            all_skills = set(true_skills + predicted_skills)
+            y_true.extend([1 if skill in true_skills else 0 for skill in all_skills])
+            y_pred.extend([1 if skill in predicted_skills else 0 for skill in all_skills])
+        
+        # Calculate precision, recall, and F1
+        precision = precision_score(y_true, y_pred)
+        recall = recall_score(y_true, y_pred)
+        f1 = f1_score(y_true, y_pred)
+
+        return {
+            "precision": round(precision, 2),
+            "recall": round(recall, 2),
+            "f1": round(f1, 2)
+        }
+    except Exception as e:
+        logger.error(f"Error calculating accuracy: {e}")
+        return {"precision": 0, "recall": 0, "f1": 0}
+
+
+'''import pdfplumber
+import spacy
+from rapidfuzz import process
+from transformers import T5ForConditionalGeneration, T5Tokenizer
+import logging
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Load NLP model
+nlp = spacy.load("en_core_web_sm")
+
+# Load T5 model and tokenizer for MCQ generation
+model_name = "t5-small"  # Lightweight, free model
+tokenizer = T5Tokenizer.from_pretrained(model_name)
+model = T5ForConditionalGeneration.from_pretrained(model_name)
+
+# Skill Ontology
+SKILL_ONTOLOGY = {
+    "technical": ["django", "python", "sql", "java", "tensorflow","javascript","html","mysql","css","front end development","backend development"],
+    "soft": ["communication", "teamwork", "problem-solving"],
+    "managerial": ["leadership", "strategic planning", "management"]
+}
+
+def extract_text_from_pdf(pdf_path):
+    """Extract text from PDF."""
+    try:
+        text = ""
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                text += page.extract_text() or ""
+        if not text.strip():
+            logger.warning("No text found in the PDF.")
+        return text
+    except Exception as e:
+        logger.error(f"Error reading PDF: {e}")
+        return ""
+
+def preprocess_text(text):
+    """Preprocess text by tokenizing, lemmatizing, and removing stopwords."""
+    doc = nlp(text.lower())
+    return [token.lemma_ for token in doc if not token.is_stop and not token.is_punct]
+
+def extract_skills_with_fuzzy(text):
+    """Extract skills using fuzzy matching."""
+    tokens = preprocess_text(text)
+    extracted_skills = {"technical": [], "soft": [], "managerial": []}
+    for token in tokens:
+        for category, skills in SKILL_ONTOLOGY.items():
+            match = process.extractOne(token, skills, score_cutoff=90)
+            if match:
+                extracted_skills[category].append(match[0])
+    return {category: list(set(skills)) for category, skills in extracted_skills.items()}'''
 
 
 '''import spacy
