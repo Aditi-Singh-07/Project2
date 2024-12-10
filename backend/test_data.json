@@ -1,6 +1,29 @@
 {
-    "sample1.pdf": ["java", "mysql", "css", "javascript", "python"],
-    "sample2.pdf": ["java", "mysql", "python", "html", "javascript", "css", "teamwork", "communication", "management", "leadership"],
-    "sample4.pdf": ["python", "java", "javascript", "HTML", "CSS", "MySql"],
-    "sample5.pdf": ["python", "java", "HTML", "CSS", "SQL", "communication", "management", "leadership"]
+    "sample1.pdf": {
+        "technical": ["java", "mysql", "css", "javascript", "python"],
+        "soft": [],
+        "managerial": []
+    },
+    "sample2.pdf": {
+        "technical": ["java", "mysql", "python", "html", "javascript", "css"],
+        "soft": ["teamwork", "communication"],
+        "managerial": ["management", "leadership"]
+    },
+    "sample3.pdf": {
+        "technical": ["django", "python", "sql", "java", "mysql", "javascript", "git", "html", "css"],
+        "soft": ["communication", "problem-solving", "teamwork"],
+        "managerial": ["management"]
+    },
+    "sample4.pdf": {
+        "technical": ["python", "java", "javascript", "html", "css", "mysql"],
+        "soft": [],
+        "managerial": []
+    },
+    "sample5.pdf": {
+        "technical": ["python", "java", "html", "css", "sql"],
+        "soft": ["communication"],
+        "managerial": ["management", "leadership"]
+    }
 }
+
+
