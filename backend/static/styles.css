@@ -1,0 +1,63 @@
+body {
+    background: linear-gradient(to right, #26D0CE, #1A2980);
+    color: white;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+}
+
+.content-box {
+    background-color: #f8f9fa;
+    color: #1A2980;
+    padding: 30px;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+}
+
+h1, h3 {
+    font-family: 'Arial', sans-serif;
+}
+
+.card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: none;
+    margin-top: 20px;
+}
+
+.card-header {
+    background-color: #4e73df;
+    color: white;
+    font-size: 1.5rem;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+li {
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.btn {
+    width: 100%;
+    font-size: 1.2rem;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-info {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+}
+
+.btn-primary, .btn-secondary {
+    font-size: 1.2rem;
+}

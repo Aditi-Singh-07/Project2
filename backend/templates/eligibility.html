@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eligibility Checker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="bg-light">
+    <div class="content-box">
+        <h1 class="text-center text-primary">Eligibility Checker</h1>
+        <div class="card mt-4">
+            <div class="card-body">
+                {% if eligible %}
+                <h3 class="text-success">Congratulations! You are eligible for the role based on your technical skills.</h3>
+                <a href="/mcq" class="btn btn-success mt-3">Generate MCQs</a>
+                {% else %}
+                <h3 class="text-danger">We are sorry to inform you that your skill set is not a match for the provided role.</h3>
+                {% endif %}
+                <a href="/" class="btn btn-info mt-3">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

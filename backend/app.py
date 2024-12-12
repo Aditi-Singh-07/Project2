@@ -18,6 +18,188 @@ TEST_DATA_FOLDER = os.path.join(os.getcwd(), 'test_data')
 with open(os.path.join(os.getcwd(), 'test_data.json')) as f:
     test_data = json.load(f)
 
+# Predefined skill ontology (for eligibility check)
+SKILL_ONTOLOGY = {
+    "technical": ["django", "python", "sql", "java", "tensorflow", "html", "mysql", "javascript", "git", "css"],
+    "soft": ["communication", "teamwork", "problem-solving"],
+    "managerial": ["leadership", "strategic planning", "management"]
+}
+
+# Utility Function: Check if uploaded file is valid
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Home route
+@app.route('/')
+def index():
+    """Render the homepage."""
+    return render_template('index.html')
+
+# Function to calculate accuracy for extracted skills
+def calculate_accuracy(extracted_skills):
+    predefined_skills = ["java", "sql", "django", "python", "mysql", "javascript", "git", "html", "css", "communication", "problem-solving", "teamwork", "management"]
+    all_extracted_skills = [skill for skills in extracted_skills.values() for skill in skills]
+    
+    correct_skills = len(set(all_extracted_skills).intersection(predefined_skills))
+    total_skills = len(predefined_skills)
+
+    if total_skills == 0:  # Avoid division by zero
+        return 0
+    accuracy = (correct_skills / total_skills) * 100
+    return round(accuracy, 2)
+
+# Function to check eligibility based on 30% match in each skill category
+# Function to check eligibility based on 30% match in technical skills
+def check_eligibility(extracted_skills):
+    eligible = True
+
+    # Check technical skills category for 30% match
+    technical_skills = SKILL_ONTOLOGY.get('technical', [])
+    matching_technical_skills = set(extracted_skills.get('technical', []))
+    technical_match_percentage = (len(matching_technical_skills) / len(technical_skills)) * 100
+
+    # If technical skills match is less than 30%, set eligible to False
+    if technical_match_percentage < 30:
+        eligible = False
+    
+    # Check other categories (soft and managerial) without the 30% match restriction
+    if eligible:  # If still eligible, check soft and managerial skills
+        for category in ['soft', 'managerial']:
+            skills = SKILL_ONTOLOGY.get(category, [])
+            matching_skills = set(extracted_skills.get(category, []))
+            match_percentage = (len(matching_skills) / len(skills)) * 100
+
+            # If any category has a match below 30%, eligibility fails
+            if match_percentage < 30:
+                eligible = False
+                break
+    
+    return eligible
+
+
+
+'''def check_eligibility(extracted_skills):
+    eligible = True
+    for category, skills in SKILL_ONTOLOGY.items():
+        # Normalize skills to lowercase for consistent matching
+        extracted_category_skills = {skill.lower() for skill in extracted_skills.get(category, [])}
+        predefined_category_skills = {skill.lower() for skill in skills}
+
+        # Calculate the number of matching skills
+        matching_skills = extracted_category_skills.intersection(predefined_category_skills)
+
+        # Calculate the match percentage
+        match_percentage = (len(matching_skills) / len(predefined_category_skills)) * 100
+        print(f"Category: {category}, Matching Skills: {matching_skills}, Match Percentage: {match_percentage}%")
+        
+        if match_percentage < 30:
+            eligible = False
+            break
+
+    return eligible'''
+
+# Upload and skill extraction route
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    """Handle file upload, extract skills, and render results."""
+    if 'pdf' not in request.files:
+        return render_template('error.html', error_message='No file part provided.')
+
+    file = request.files['pdf']
+    if file.filename == '':
+        return render_template('error.html', error_message='No file selected.')
+
+    if file and allowed_file(file.filename):
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
+
+        try:
+            resume_text = extract_text_from_pdf(filepath)
+            skills = extract_skills_with_fuzzy(resume_text)
+            accuracy = calculate_accuracy(skills)
+
+            # Check eligibility
+            eligible = check_eligibility(skills)
+
+            return render_template('skills.html', skills=skills, accuracy=accuracy, eligible=eligible)
+        except Exception as e:
+            return render_template('error.html', error_message=f"Error extracting skills: {str(e)}")
+    else:
+        return render_template('error.html', error_message='Invalid file type.')
+
+# Test the model with sample test data
+def test_model_with_test_data():
+    """Test skill extraction model on predefined test data."""
+    correct_predictions = 0
+    total_skills = 0
+
+    for resume_file, ground_truth_skills in test_data.items():
+        resume_path = os.path.join(TEST_DATA_FOLDER, resume_file)
+        extracted_skills = extract_skills_with_fuzzy(extract_text_from_pdf(resume_path))
+
+        for category in ['technical', 'soft', 'managerial']:
+            true_skills = set(ground_truth_skills.get(category, []))
+            predicted_skills = set(extracted_skills.get(category, []))
+
+            correct_predictions += len(true_skills.intersection(predicted_skills))
+            total_skills += len(true_skills)
+
+    accuracy = round((correct_predictions / total_skills) * 100, 2) if total_skills > 0 else 0
+    precision = precision_score([1] * correct_predictions + [0] * (total_skills - correct_predictions),
+                                 [1] * correct_predictions + [0] * (total_skills - correct_predictions))
+    recall = recall_score([1] * correct_predictions + [0] * (total_skills - correct_predictions),
+                           [1] * correct_predictions + [0] * (total_skills - correct_predictions))
+    f1 = f1_score([1] * correct_predictions + [0] * (total_skills - correct_predictions),
+                  [1] * correct_predictions + [0] * (total_skills - correct_predictions))
+
+    return accuracy, precision, recall, f1
+
+# Test endpoint for evaluating model
+@app.route('/test', methods=['GET'])
+def test():
+    """Run tests and display performance metrics."""
+    accuracy, precision, recall, f1 = test_model_with_test_data()
+    return render_template('accuracy.html', accuracy=accuracy, precision=precision, recall=recall, f1=f1)
+
+@app.route('/mcq')
+def mcq():
+    """Render MCQ page."""
+    return render_template('mcq.html')
+
+@app.route('/eligibility')
+def eligibility_check():
+    """Render the eligibility check page."""
+    # Just return a placeholder page or logic based on your requirements
+    return render_template('eligibility.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+
+
+
+'''from flask import Flask, render_template, request, jsonify
+import os
+import json
+from skill_extraction import extract_text_from_pdf, extract_skills_with_fuzzy
+from sklearn.metrics import precision_score, recall_score, f1_score
+
+app = Flask(__name__)
+
+# Configurations for upload directory and allowed file extensions
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'backend', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ALLOWED_EXTENSIONS = {'pdf'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Path to test data directory and loading ground truth data
+TEST_DATA_FOLDER = os.path.join(os.getcwd(), 'test_data')
+with open(os.path.join(os.getcwd(), 'test_data.json')) as f:
+    test_data = json.load(f)
+
 # Utility Function: Check if uploaded file is valid
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -66,6 +248,8 @@ def upload_file():
     else:
         return render_template('error.html', error_message='Invalid file type.')
 
+
+
 # Test the model with sample test data
 def test_model_with_test_data():
     """Test skill extraction model on predefined test data."""
@@ -106,7 +290,7 @@ def mcq():
     return render_template('mcq.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)'''
 
 
 

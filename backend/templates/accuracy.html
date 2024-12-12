@@ -5,7 +5,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Model Performance</title>
-    <!-- Bootstrap CDN for Styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to right, #26D0CE, #1A2980);
+            color: white;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .content-box {
+            background-color: #f8f9fa;
+            color: #1A2980;
+            padding: 30px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #26D0CE;
+        }
+
+        .result {
+            margin-bottom: 20px;
+        }
+
+        .result p {
+            font-size: 1.2em;
+        }
+
+        .btn-back {
+            background-color: #26D0CE;
+            color: white;
+            border: none;
+        }
+
+        .btn-back:hover {
+            background-color: #1A2980;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="content-box">
+        <h1 class="text-center">Model Evaluation Results</h1>
+        
+        <div class="result">
+            <p><strong>Accuracy:</strong> {{ accuracy }}</p>
+            <p><strong>Precision:</strong> {{ precision }}</p>
+            <p><strong>Recall:</strong> {{ recall }}</p>
+            <p><strong>F1 Score:</strong> {{ f1 }}</p>
+        </div>
+
+        <div class="text-center">
+            <!-- Button to go back to the skills page -->
+            <a href="/" class="btn btn-info mt-3">Back to Skills</a>
+            <!-- Button to generate MCQs -->
+            <a href="/mcq" class="btn btn-success mt-3">Generate MCQs</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
+
+<!--<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Performance</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -73,6 +150,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
-</html>
+</html> -->
 
 
