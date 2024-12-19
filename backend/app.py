@@ -3,6 +3,232 @@ import os
 import json
 from skill_extraction import extract_text_from_pdf, extract_skills_with_fuzzy
 from sklearn.metrics import precision_score, recall_score, f1_score
+import requests
+
+app = Flask(__name__)
+
+# Configurations for upload directory and allowed file extensions
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'backend', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ALLOWED_EXTENSIONS = {'pdf'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Path to test data directory and loading ground truth data
+TEST_DATA_FOLDER = os.path.join(os.getcwd(), 'test_data')
+with open(os.path.join(os.getcwd(), 'test_data.json')) as f:
+    test_data = json.load(f)
+
+# Predefined skill ontology (for eligibility check)
+SKILL_ONTOLOGY = {
+    "technical": ["django", "python", "sql", "java", "tensorflow", "html", "mysql", "javascript", "git", "css"],
+    "soft": ["communication", "teamwork", "problem-solving"],
+    "managerial": ["leadership", "strategic planning", "management"]
+}
+
+# Trivia API endpoint
+TRIVIA_API_URL = "https://opentdb.com/api.php"
+
+# Utility Function: Check if uploaded file is valid
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Home route
+@app.route('/')
+def index():
+    """Render the homepage."""
+    return render_template('index.html')
+
+# Function to calculate accuracy for extracted skills
+def calculate_accuracy(extracted_skills):
+    predefined_skills = [skill.lower() for skill in SKILL_ONTOLOGY["technical"] + SKILL_ONTOLOGY["soft"] + SKILL_ONTOLOGY["managerial"]]
+    all_extracted_skills = [skill.lower() for skills in extracted_skills.values() for skill in skills]
+
+    correct_skills = len(set(all_extracted_skills).intersection(predefined_skills))
+    total_skills = len(predefined_skills)
+
+    return round((correct_skills / total_skills) * 100, 2) if total_skills > 0 else 0
+
+# Updated eligibility logic to allow at least 2 skills to match
+def check_eligibility(extracted_skills):
+    total_matching_skills = 0
+
+    # Check technical skills category for at least 2 matching skills
+    technical_skills = SKILL_ONTOLOGY.get('technical', [])
+    matching_technical_skills = set(extracted_skills.get('technical', []))
+    total_matching_skills += len(matching_technical_skills)
+
+    # If at least 2 skills match in the technical category, they are eligible
+    if total_matching_skills >= 2:
+        return True
+    else:
+        return False
+
+# Upload and skill extraction route
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    """Handle file upload, extract skills, and render results."""
+    if 'pdf' not in request.files:
+        return render_template('error.html', error_message='No file part provided.')
+
+    file = request.files['pdf']
+    if file.filename == '':
+        return render_template('error.html', error_message='No file selected.')
+
+    if file and allowed_file(file.filename):
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
+
+        try:
+            resume_text = extract_text_from_pdf(filepath)
+            skills = extract_skills_with_fuzzy(resume_text)
+            accuracy = calculate_accuracy(skills)
+            eligible = check_eligibility(skills)
+
+            return render_template('skills.html', skills=skills, accuracy=accuracy, eligible=eligible)
+        except Exception as e:
+            return render_template('error.html', error_message=f"Error extracting skills: {str(e)}")
+    else:
+        return render_template('error.html', error_message='Invalid file type.')
+
+# Generate MCQs using Open Trivia Database API
+def generate_mcqs(extracted_skills):
+    """Generate MCQs based on extracted skills using an external API."""
+    mcqs = {"technical": [], "soft": [], "managerial": []}
+    api_url = "https://opentdb.com/api.php"
+
+    total_questions = 20
+    question_distribution = {
+        "technical": int(total_questions * 0.6),
+        "soft": int(total_questions * 0.2),
+        "managerial": int(total_questions * 0.2)
+    }
+
+    for category, count in question_distribution.items():
+        response = requests.get(api_url, params={
+            "amount": count,
+            "type": "multiple",
+            "difficulty": "medium"
+        })
+        if response.status_code == 200:
+            questions = response.json().get('results', [])
+            for question in questions:
+                mcqs[category].append({
+                    "id": f"{category}_{len(mcqs[category])}",
+                    "question": question['question'],
+                    "options": question['incorrect_answers'] + [question['correct_answer']],
+                    "answer": question['correct_answer']
+                })
+
+    # Shuffle the options for each question
+    for category_questions in mcqs.values():
+        for question in category_questions:
+            question['options'] = sorted(question['options'])
+
+    return mcqs
+
+# Route to start the test and display MCQs
+@app.route('/start_test', methods=['GET'])
+def start_test():
+    """Generate MCQs and display the test page."""
+    extracted_skills = {
+        'technical': ['python', 'java'],
+        'soft': ['communication'],
+        'managerial': ['leadership']
+    }
+    mcqs = generate_mcqs(extracted_skills)
+    return render_template('test.html', mcqs=mcqs, duration=30)
+
+# Submit test and calculate score
+@app.route('/submit_test', methods=['POST'])
+def submit_test():
+    """Calculate and display the score."""
+    submitted_answers = request.json.get('answers', {})
+    correct_answers = request.json.get('correct_answers', {})
+
+    score = 0
+    for category, questions in correct_answers.items():
+        for qid, correct_answer in questions.items():
+            if submitted_answers.get(qid) == correct_answer:
+                score += 1
+
+    return jsonify({"score": score, "total": len(correct_answers)})
+
+# Test the model with sample test data
+def test_model_with_test_data():
+    """Test skill extraction model on predefined test data."""
+    correct_predictions = 0
+    total_skills = 0
+
+    for resume_file, ground_truth_skills in test_data.items():
+        resume_path = os.path.join(TEST_DATA_FOLDER, resume_file)
+        extracted_skills = extract_skills_with_fuzzy(extract_text_from_pdf(resume_path))
+
+        for category in ['technical', 'soft', 'managerial']:
+            true_skills = set(ground_truth_skills.get(category, []))
+            predicted_skills = set(extracted_skills.get(category, []))
+
+            correct_predictions += len(true_skills.intersection(predicted_skills))
+            total_skills += len(true_skills)
+
+    accuracy = round((correct_predictions / total_skills) * 100, 2) if total_skills > 0 else 0
+    precision = precision_score([1] * correct_predictions + [0] * (total_skills - correct_predictions),
+                                 [1] * correct_predictions + [0] * (total_skills - correct_predictions))
+    recall = recall_score([1] * correct_predictions + [0] * (total_skills - correct_predictions),
+                           [1] * correct_predictions + [0] * (total_skills - correct_predictions))
+    f1 = f1_score([1] * correct_predictions + [0] * (total_skills - correct_predictions),
+                  [1] * correct_predictions + [0] * (total_skills - correct_predictions))
+
+    return accuracy, precision, recall, f1
+
+# Test endpoint for evaluating model
+@app.route('/test', methods=['GET'])
+def test():
+    """Run tests and display performance metrics."""
+    accuracy, precision, recall, f1 = test_model_with_test_data()
+    return render_template('accuracy.html', accuracy=accuracy, precision=precision, recall=recall, f1=f1)
+
+# Eligibility route to show eligibility status
+@app.route('/eligibility')
+def eligibility_check():
+    """Render the eligibility check page."""
+    eligible = False
+    # Example: Assume extracted_skills are passed through context or session
+    extracted_skills = {
+        'technical': ['python', 'java', 'html'],
+        'soft': ['communication', 'teamwork'],
+        'managerial': ['leadership', 'management']
+    }
+    eligible = check_eligibility(extracted_skills)
+    return render_template('eligibility.html', eligible=eligible)
+
+@app.route('/mcq')
+def mcq():
+    """Render MCQ page."""
+    return render_template('mcq.html')
+
+@app.route('/instructions')
+def instructions():
+    """Display instructions for the test."""
+    return render_template('instructions.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+
+
+
+
+
+
+
+'''from flask import Flask, render_template, request, jsonify
+import os
+import json
+from skill_extraction import extract_text_from_pdf, extract_skills_with_fuzzy
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 app = Flask(__name__)
 
@@ -140,8 +366,13 @@ def mcq():
     """Render MCQ page."""
     return render_template('mcq.html')
 
+@app.route('/instructions')
+def instructions():
+    """Display instructions for the test."""
+    return render_template('instructions.html')
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)'''
 
 
 

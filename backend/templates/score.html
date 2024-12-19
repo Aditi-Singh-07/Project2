@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="bg-light">
+    <div class="content-box">
+        <h1 class="text-center text-primary">Test Results</h1>
+        <div class="card mt-4">
+            <div class="card-body">
+                <p><strong>Score: </strong> {{ score['score'] }} / {{ score['total'] }}</p>
+                <p><strong>Percentage: </strong> {{ score['percentage'] }}%</p>
+                {% if score['percentage'] >= 60 %}
+                <p class="text-success">Congratulations! You passed the test.</p>
+                {% else %}
+                <p class="text-danger">Unfortunately, you did not pass the test.</p>
+                {% endif %}
+                <a href="/" class="btn btn-info mt-3">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
